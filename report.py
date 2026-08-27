@@ -7,7 +7,7 @@ def build_report(created, needs_review, skipped, jira_errors):
             lines.append(f"- {item['who']}: {item['what']} — {item['url']}")
 
     if needs_review:
-        lines.append("\n⚠️ Требуют проверки (цитата не найдена дословно):")
+        lines.append("\n⚠️ Требует проверки (цитата не найдена дословно):")
         for item in needs_review:
             lines.append(f"- {item['who']}: {item['what']} (цитата: «{item['quote']}»)")
 
