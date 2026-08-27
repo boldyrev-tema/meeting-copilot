@@ -2,6 +2,7 @@ import json
 from unittest.mock import patch
 
 import run
+from jira_client import JiraTicketResult
 
 
 def _write_credentials(tmp_path):
@@ -43,13 +44,6 @@ def _setup_run_paths(monkeypatch, tmp_path):
     return transcripts_dir, processed_dir
 
 
-class _FakeTicketResult:
-    def __init__(self, success, url=None, error=None):
-        self.success = success
-        self.url = url
-        self.error = error
-
-
 def test_run_happy_path_creates_ticket_and_moves_file(monkeypatch, tmp_path):
     transcripts_dir, processed_dir = _setup_run_paths(monkeypatch, tmp_path)
     transcript_file = transcripts_dir / "2026-08-27_10-00-00.txt"
@@ -67,7 +61,7 @@ def test_run_happy_path_creates_ticket_and_moves_file(monkeypatch, tmp_path):
                 "quote": "нужно сделать отчёт до пятницы",
             }
         ]
-        mock_create.return_value = _FakeTicketResult(
+        mock_create.return_value = JiraTicketResult(
             success=True, url="https://example.atlassian.net/browse/PROJ-1"
         )
 
@@ -175,8 +169,8 @@ def test_run_one_ticket_succeeds_one_fails_both_reported(monkeypatch, tmp_path):
             {"who": "Иван", "what": "обновить сайт", "quote": "нужно обновить сайт"},
         ]
         mock_create.side_effect = [
-            _FakeTicketResult(success=True, url="https://example.atlassian.net/browse/PROJ-1"),
-            _FakeTicketResult(success=False, error="403 Forbidden"),
+            JiraTicketResult(success=True, url="https://example.atlassian.net/browse/PROJ-1"),
+            JiraTicketResult(success=False, error="403 Forbidden"),
         ]
 
         exit_code = run.run()
@@ -245,7 +239,7 @@ def test_run_telegram_failure_does_not_move_file(monkeypatch, tmp_path):
                 "quote": "нужно сделать отчёт до пятницы",
             }
         ]
-        mock_create.return_value = _FakeTicketResult(
+        mock_create.return_value = JiraTicketResult(
             success=True, url="https://example.atlassian.net/browse/PROJ-1"
         )
         from telegram_notify import TelegramSendError
