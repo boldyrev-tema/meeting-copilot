@@ -63,11 +63,18 @@ def extract_tasks(transcript: str, name_mapping: dict, api_key: str) -> list:
         content = resp.json()["choices"][0]["message"]["content"]
         parsed = json.loads(content)
         tasks = parsed["tasks"]
+
+        # Validate tasks is a list
+        if not isinstance(tasks, list):
+            raise TypeError(f"tasks must be a list, got {type(tasks).__name__}")
+
+        # Validate each task has required keys
+        for task in tasks:
+            if not isinstance(task, dict):
+                raise TypeError(f"task must be a dict, got {type(task).__name__}")
+            if not all(k in task for k in ("who", "what", "quote")):
+                raise KeyError(f"task missing required keys: {task}")
     except (KeyError, IndexError, TypeError, json.JSONDecodeError) as e:
         raise LLMResponseParseError(str(e)) from e
-
-    for task in tasks:
-        if not all(k in task for k in ("who", "what", "quote")):
-            raise LLMResponseParseError(f"task missing required keys: {task}")
 
     return tasks

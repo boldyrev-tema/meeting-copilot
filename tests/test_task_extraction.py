@@ -61,3 +61,35 @@ def test_extract_tasks_raises_parse_error_on_missing_keys(mock_post):
 
     with pytest.raises(LLMResponseParseError):
         extract_tasks("транскрипт", {}, api_key="fake")
+
+
+@patch("task_extraction.requests.post")
+def test_extract_tasks_raises_parse_error_when_tasks_is_none(mock_post):
+    mock_post.return_value = _mock_groq_response({"tasks": None})
+
+    with pytest.raises(LLMResponseParseError):
+        extract_tasks("транскрипт", {}, api_key="fake")
+
+
+@patch("task_extraction.requests.post")
+def test_extract_tasks_raises_parse_error_when_tasks_is_string(mock_post):
+    mock_post.return_value = _mock_groq_response({"tasks": "not a list"})
+
+    with pytest.raises(LLMResponseParseError):
+        extract_tasks("транскрипт", {}, api_key="fake")
+
+
+@patch("task_extraction.requests.post")
+def test_extract_tasks_raises_parse_error_when_tasks_is_dict(mock_post):
+    mock_post.return_value = _mock_groq_response({"tasks": {"who": "Артём"}})
+
+    with pytest.raises(LLMResponseParseError):
+        extract_tasks("транскрипт", {}, api_key="fake")
+
+
+@patch("task_extraction.requests.post")
+def test_extract_tasks_raises_parse_error_when_task_item_is_not_dict(mock_post):
+    mock_post.return_value = _mock_groq_response({"tasks": ["not a dict"]})
+
+    with pytest.raises(LLMResponseParseError):
+        extract_tasks("транскрипт", {}, api_key="fake")
