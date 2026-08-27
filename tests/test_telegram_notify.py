@@ -26,3 +26,19 @@ def test_send_telegram_message_raises_on_failure(mock_post):
 
     with pytest.raises(TelegramSendError):
         send_telegram_message("bot-token", "12345", "привет")
+
+
+@patch("telegram_notify.requests.post")
+def test_send_telegram_message_scrubs_bot_token_from_error(mock_post):
+    fake_token = "123456:AAFakeSecretBotToken"
+    mock_post.side_effect = requests.exceptions.HTTPError(
+        f"401 Client Error: Unauthorized for url: "
+        f"https://api.telegram.org/bot{fake_token}/sendMessage"
+    )
+
+    with pytest.raises(TelegramSendError) as exc_info:
+        send_telegram_message(fake_token, "12345", "привет")
+
+    message = str(exc_info.value)
+    assert fake_token not in message
+    assert "<TOKEN>" in message

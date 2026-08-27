@@ -93,3 +93,36 @@ def test_extract_tasks_raises_parse_error_when_task_item_is_not_dict(mock_post):
 
     with pytest.raises(LLMResponseParseError):
         extract_tasks("транскрипт", {}, api_key="fake")
+
+
+@patch("task_extraction.requests.post")
+def test_extract_tasks_raises_parse_error_when_quote_is_null(mock_post):
+    mock_post.return_value = _mock_groq_response(
+        {"tasks": [{"who": "Артём", "what": "сделать отчёт", "quote": None}]}
+    )
+
+    with pytest.raises(LLMResponseParseError):
+        extract_tasks("транскрипт", {}, api_key="fake")
+
+
+@patch("task_extraction.requests.post")
+def test_extract_tasks_raises_parse_error_when_who_is_not_string(mock_post):
+    mock_post.return_value = _mock_groq_response(
+        {"tasks": [{"who": 123, "what": "сделать отчёт", "quote": "нужно сделать отчёт"}]}
+    )
+
+    with pytest.raises(LLMResponseParseError):
+        extract_tasks("транскрипт", {}, api_key="fake")
+
+
+@patch("task_extraction.requests.post")
+def test_extract_tasks_raises_parse_error_and_includes_raw_content_on_invalid_json(mock_post):
+    mock_resp = Mock()
+    mock_resp.raise_for_status = Mock()
+    mock_resp.json.return_value = {"choices": [{"message": {"content": "не json"}}]}
+    mock_post.return_value = mock_resp
+
+    with pytest.raises(LLMResponseParseError) as exc_info:
+        extract_tasks("транскрипт", {}, api_key="fake")
+
+    assert "не json" in str(exc_info.value)

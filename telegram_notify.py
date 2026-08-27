@@ -14,4 +14,4 @@ def send_telegram_message(bot_token: str, chat_id: str, text: str) -> None:
         )
         resp.raise_for_status()
     except requests.exceptions.RequestException as e:
-        raise TelegramSendError(str(e)) from e
+        raise TelegramSendError(str(e).replace(bot_token, "<TOKEN>")) from e

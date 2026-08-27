@@ -70,6 +70,29 @@ def test_create_ticket_missing_key_in_response_returns_failure_not_raises(mock_p
 
 
 @patch("jira_client.requests.post")
+def test_create_ticket_generic_exception_returns_failure_not_raises(mock_post):
+    # requests encodes HTTP Basic Auth credentials as latin-1 internally; a
+    # non-latin-1 email/token (e.g. Cyrillic) raises UnicodeEncodeError, a
+    # ValueError subclass, not a RequestException. create_ticket must never
+    # raise regardless of the exception type.
+    mock_post.side_effect = RuntimeError("simulated encoding failure")
+
+    result = create_ticket(
+        base_url="https://example.atlassian.net",
+        email="a@b.com",
+        api_token="tok",
+        project_key="PROJ",
+        assignee_username="artem.boldyrev",
+        summary="Сделать отчёт",
+        description="Цитата: «нужно сделать отчёт»",
+    )
+
+    assert result.success is False
+    assert result.url is None
+    assert "simulated encoding failure" in result.error
+
+
+@patch("jira_client.requests.post")
 def test_create_ticket_json_decode_error_returns_failure_not_raises(mock_post):
     mock_resp = Mock()
     mock_resp.raise_for_status = Mock()

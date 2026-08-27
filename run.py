@@ -14,6 +14,11 @@ GROQ_API_KEY_PATH = "~/.credentials/groq_api_key.env"
 JIRA_CREDENTIALS_PATH = "~/.credentials/jira_credentials.env"
 TELEGRAM_CREDENTIALS_PATH = "~/.credentials/meeting_copilot_telegram.env"
 
+# Telegram's sendMessage API rejects text over ~4096 characters. Leave headroom
+# for the truncation note itself.
+TELEGRAM_MESSAGE_LIMIT = 4000
+TELEGRAM_TRUNCATION_NOTE = "\n\n[отчёт обрезан, полный текст в терминале]"
+
 
 def run() -> int:
     transcript_path = find_latest_unprocessed(TRANSCRIPTS_DIR, PROCESSED_DIR)
@@ -78,10 +83,15 @@ def run() -> int:
     report_text = build_report(created, needs_review, skipped, jira_errors)
     print(report_text)
 
+    telegram_text = report_text
+    if len(telegram_text) > TELEGRAM_MESSAGE_LIMIT:
+        cutoff = TELEGRAM_MESSAGE_LIMIT - len(TELEGRAM_TRUNCATION_NOTE)
+        telegram_text = telegram_text[:cutoff] + TELEGRAM_TRUNCATION_NOTE
+
     try:
         bot_token = load_credential(TELEGRAM_CREDENTIALS_PATH, "TELEGRAM_BOT_TOKEN")
         chat_id = load_credential(TELEGRAM_CREDENTIALS_PATH, "TELEGRAM_CHAT_ID")
-        send_telegram_message(bot_token, chat_id, report_text)
+        send_telegram_message(bot_token, chat_id, telegram_text)
     except (TelegramSendError, FileNotFoundError, ValueError) as e:
         print(f"Не удалось отправить отчёт в Telegram: {e}")
         return 1

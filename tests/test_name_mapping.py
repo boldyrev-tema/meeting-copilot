@@ -25,6 +25,14 @@ def test_load_name_mapping_malformed_json_raises(tmp_path):
         load_name_mapping(p)
 
 
+def test_load_name_mapping_json_array_raises_value_error(tmp_path):
+    p = tmp_path / "names.json"
+    p.write_text(json.dumps(["Артём", "artem.boldyrev"]), encoding="utf-8")
+
+    with pytest.raises(ValueError):
+        load_name_mapping(p)
+
+
 def test_resolve_name_exact_match():
     mapping = {"Артём": "artem.boldyrev"}
     assert resolve_name("Артём", mapping) == "artem.boldyrev"

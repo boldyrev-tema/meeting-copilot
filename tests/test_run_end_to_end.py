@@ -251,3 +251,29 @@ def test_run_telegram_failure_does_not_move_file(monkeypatch, tmp_path):
     assert exit_code == 1
     assert transcript_file.exists()
     assert not (processed_dir / transcript_file.name).exists()
+
+
+def test_run_truncates_long_report_before_sending_to_telegram(monkeypatch, tmp_path):
+    transcripts_dir, processed_dir = _setup_run_paths(monkeypatch, tmp_path)
+    transcript_file = transcripts_dir / "2026-08-27_16-00-00.txt"
+    transcript_file.write_text(
+        "[16:00:00] Собеседник: Привет, как прошли выходные?", encoding="utf-8"
+    )
+
+    long_report = "x" * 5000
+
+    with patch("run.extract_tasks") as mock_extract, \
+         patch("run.build_report") as mock_build_report, \
+         patch("run.send_telegram_message") as mock_send:
+        mock_extract.return_value = []
+        mock_build_report.return_value = long_report
+
+        exit_code = run.run()
+
+    assert exit_code == 0
+    mock_send.assert_called_once()
+    sent_text = mock_send.call_args[0][2]
+    assert len(sent_text) <= run.TELEGRAM_MESSAGE_LIMIT
+    assert "отчёт обрезан" in sent_text
+    assert not transcript_file.exists()
+    assert (processed_dir / transcript_file.name).exists()
