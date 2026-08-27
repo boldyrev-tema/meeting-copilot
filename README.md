@@ -75,14 +75,22 @@ python3 -m pytest -v
 3. Провести короткий тестовый созвон 1-на-1 через `live_copilot_poc`, вслух
    поручить себе или собеседнику конкретную задачу.
 4. Запустить `python3 run.py`.
-5. **Проверить формат поля assignee в Jira.** `jira_client.py` сейчас
-   отправляет `{"assignee": {"name": ...}}` (Jira Server/Data Center стиль).
-   Если ответ Jira API — ошибка про поле `assignee` или `accountId`, значит
-   твой инстанс — Jira Cloud, и в `jira_client.py` нужно заменить
-   `{"name": assignee_username}` на `{"accountId": ...}`, а в
-   `name_mapping.json` хранить не username, а accountId (его можно достать
-   через `GET /rest/api/3/myself` для себя или `GET /rest/api/3/user/search`
-   для коллег).
+5. **Это упадёт на первой же попытке — так и должно быть, вот почему.**
+   `jira_client.py` сейчас комбинирует Jira Cloud-only эндпоинт/формат
+   (`/rest/api/3/issue` с ADF-описанием) с Jira Server-only форматом поля
+   assignee (`{"assignee": {"name": ...}}`). Эта комбинация не может
+   заработать ни на одном из двух продуктов как есть: Jira Cloud отклонит
+   `name`-стиль assignee (требует `accountId`), а Jira Server вообще не
+   поддерживает v3 API и ADF-описания. Ожидай ошибку от Jira API на этом шаге
+   и по её тексту определи, что чинить:
+   - Если инстанс — **Jira Cloud**: замени в `jira_client.py`
+     `{"name": assignee_username}` на `{"accountId": ...}`, а в
+     `name_mapping.json` храни не username, а accountId (его можно достать
+     через `GET /rest/api/3/myself` для себя или `GET /rest/api/3/user/search`
+     для коллег).
+   - Если инстанс — **Jira Server/Data Center**: замени эндпоинт на
+     `/rest/api/2/issue` и формат `description` с ADF-объекта на обычную
+     строку.
 6. Проверить, что тикет реально появился в Jira с правильным исполнителем и
    текстом задачи.
 7. Проверить, что в Telegram пришло сообщение с этим тикетом в списке
