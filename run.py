@@ -42,10 +42,14 @@ def run() -> int:
     created, needs_review, skipped, jira_errors = [], [], [], []
 
     if tasks:
-        jira_base_url = load_credential(JIRA_CREDENTIALS_PATH, "JIRA_BASE_URL")
-        jira_email = load_credential(JIRA_CREDENTIALS_PATH, "JIRA_EMAIL")
-        jira_api_token = load_credential(JIRA_CREDENTIALS_PATH, "JIRA_API_TOKEN")
-        jira_project_key = load_credential(JIRA_CREDENTIALS_PATH, "JIRA_PROJECT_KEY")
+        try:
+            jira_base_url = load_credential(JIRA_CREDENTIALS_PATH, "JIRA_BASE_URL")
+            jira_email = load_credential(JIRA_CREDENTIALS_PATH, "JIRA_EMAIL")
+            jira_api_token = load_credential(JIRA_CREDENTIALS_PATH, "JIRA_API_TOKEN")
+            jira_project_key = load_credential(JIRA_CREDENTIALS_PATH, "JIRA_PROJECT_KEY")
+        except (FileNotFoundError, ValueError) as e:
+            print(f"Не удалось загрузить Jira credentials: {e}")
+            return 1
 
         for task in tasks:
             if not verify_quote(task["quote"], transcript):
