@@ -1,3 +1,5 @@
+import json
+
 import requests
 
 
@@ -36,7 +38,7 @@ def create_ticket(base_url, email, api_token, project_key, assignee_username, su
         )
         resp.raise_for_status()
         key = resp.json()["key"]
-    except (requests.exceptions.RequestException, KeyError) as e:
+    except (requests.exceptions.RequestException, KeyError, json.JSONDecodeError) as e:
         return JiraTicketResult(success=False, error=str(e))
 
     return JiraTicketResult(success=True, url=f"{base_url}/browse/{key}")
