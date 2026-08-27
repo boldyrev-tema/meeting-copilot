@@ -35,8 +35,8 @@ def create_ticket(base_url, email, api_token, project_key, assignee_username, su
             timeout=30,
         )
         resp.raise_for_status()
-    except requests.exceptions.RequestException as e:
+        key = resp.json()["key"]
+    except (requests.exceptions.RequestException, KeyError) as e:
         return JiraTicketResult(success=False, error=str(e))
 
-    key = resp.json()["key"]
     return JiraTicketResult(success=True, url=f"{base_url}/browse/{key}")

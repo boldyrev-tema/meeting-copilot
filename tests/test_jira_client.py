@@ -44,3 +44,25 @@ def test_create_ticket_failure_returns_error_without_raising(mock_post):
     assert result.success is False
     assert result.url is None
     assert "403" in result.error
+
+
+@patch("jira_client.requests.post")
+def test_create_ticket_missing_key_in_response_returns_failure_not_raises(mock_post):
+    mock_resp = Mock()
+    mock_resp.raise_for_status = Mock()
+    mock_resp.json.return_value = {"id": "12345"}  # Missing "key" field
+    mock_post.return_value = mock_resp
+
+    result = create_ticket(
+        base_url="https://example.atlassian.net",
+        email="a@b.com",
+        api_token="tok",
+        project_key="PROJ",
+        assignee_username="artem.boldyrev",
+        summary="Сделать отчёт",
+        description="Цитата: «нужно сделать отчёт»",
+    )
+
+    assert result.success is False
+    assert result.url is None
+    assert result.error is not None
