@@ -19,3 +19,8 @@ def test_verify_quote_false_for_paraphrase():
 def test_verify_quote_false_when_fabricated():
     transcript = "[10:00:00] Собеседник: Привет, как дела?"
     assert verify_quote("Нужно сделать отчёт до пятницы.", transcript) is False
+
+
+def test_verify_quote_false_when_splicing_across_sentence_boundary():
+    transcript = "[10:00:00] Собеседник: Нужно сделать отчёт. До пятницы был другой разговор."
+    assert verify_quote("нужно сделать отчёт до пятницы", transcript) is False

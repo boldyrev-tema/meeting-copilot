@@ -3,7 +3,7 @@ import re
 
 def _normalize(text: str) -> str:
     text = text.lower().replace("ё", "е")
-    text = re.sub(r"[^\w\s]", "", text, flags=re.UNICODE)
+    text = re.sub(r"[^\w\s.!?]", "", text, flags=re.UNICODE)
     text = re.sub(r"\s+", " ", text).strip()
     return text
 
