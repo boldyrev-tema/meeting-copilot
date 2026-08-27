@@ -104,7 +104,7 @@ def test_run_hallucinated_quote_skips_ticket_but_still_completes(monkeypatch, tm
     mock_create.assert_not_called()
     mock_send.assert_called_once()
     sent_text = mock_send.call_args[0][2]
-    assert "требует проверки" in sent_text.lower()
+    assert "требуют проверки" in sent_text.lower()
     assert not transcript_file.exists()
     assert (processed_dir / transcript_file.name).exists()
 
@@ -188,6 +188,44 @@ def test_run_one_ticket_succeeds_one_fails_both_reported(monkeypatch, tmp_path):
     assert "403 Forbidden" in sent_text
     assert not transcript_file.exists()
     assert (processed_dir / transcript_file.name).exists()
+
+
+def test_run_missing_jira_credential_does_not_move_file_or_create_ticket(monkeypatch, tmp_path):
+    transcripts_dir, processed_dir = _setup_run_paths(monkeypatch, tmp_path)
+
+    # Overwrite the Jira credentials file with one missing JIRA_PROJECT_KEY.
+    jira_path = tmp_path / "jira.env"
+    jira_path.write_text(
+        "JIRA_BASE_URL=https://example.atlassian.net\n"
+        "JIRA_EMAIL=a@b.com\n"
+        "JIRA_API_TOKEN=fake-token\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(run, "JIRA_CREDENTIALS_PATH", str(jira_path))
+
+    transcript_file = transcripts_dir / "2026-08-27_15-00-00.txt"
+    transcript_file.write_text(
+        "[15:00:00] Собеседник: Артём, нужно сделать отчёт до пятницы.", encoding="utf-8"
+    )
+
+    with patch("run.extract_tasks") as mock_extract, \
+         patch("run.create_ticket") as mock_create, \
+         patch("run.send_telegram_message") as mock_send:
+        mock_extract.return_value = [
+            {
+                "who": "Артём",
+                "what": "сделать отчёт до пятницы",
+                "quote": "нужно сделать отчёт до пятницы",
+            }
+        ]
+
+        exit_code = run.run()
+
+    assert exit_code == 1
+    mock_create.assert_not_called()
+    mock_send.assert_not_called()
+    assert transcript_file.exists()
+    assert not (processed_dir / transcript_file.name).exists()
 
 
 def test_run_telegram_failure_does_not_move_file(monkeypatch, tmp_path):
