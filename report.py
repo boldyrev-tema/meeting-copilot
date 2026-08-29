@@ -1,4 +1,4 @@
-def build_report(created, needs_review, skipped, jira_errors):
+def build_report(created, needs_review, skipped, jira_errors, summary_note=None):
     lines = ["Отчёт по обработке транскрипта:"]
 
     if created:
@@ -23,5 +23,8 @@ def build_report(created, needs_review, skipped, jira_errors):
 
     if not (created or needs_review or skipped or jira_errors):
         lines.append("\nЗадач не найдено.")
+
+    if summary_note:
+        lines.append(f"\n📝 {summary_note}")
 
     return "\n".join(lines)

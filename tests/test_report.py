@@ -41,3 +41,15 @@ def test_build_report_says_no_tasks_when_all_empty():
     text = build_report([], [], [], [])
 
     assert "не найдено" in text.lower()
+
+
+def test_build_report_appends_summary_note_when_present():
+    text = build_report([], [], [], [], summary_note="саммари сохранено: summaries/x.md")
+
+    assert "саммари сохранено: summaries/x.md" in text
+
+
+def test_build_report_omits_summary_line_when_absent():
+    text = build_report([], [], [], [])
+
+    assert "📝" not in text
