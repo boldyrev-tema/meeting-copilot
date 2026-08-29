@@ -486,3 +486,49 @@ def test_run_summary_malformed_filename_stem_does_not_crash_run(monkeypatch, tmp
     assert "PROJ-1" in sent_text
     assert not transcript_file.exists()
     assert (processed_dir / transcript_file.name).exists()
+
+
+def test_run_summary_malformed_qa_item_does_not_crash_run(monkeypatch, tmp_path):
+    transcripts_dir, processed_dir, summaries_dir = _setup_run_paths(monkeypatch, tmp_path)
+    # extract_qa_pairs is mocked to return an item missing the "answer" key —
+    # summary_extraction.py's own validation would never let this through in
+    # practice, but _generate_and_save_summary must not assume that: it calls
+    # build_summary_markdown, which unguardedly indexes item["answer"] and
+    # raises KeyError. This proves the broadened `except Exception` in
+    # _generate_and_save_summary (not the old narrow (OSError, ValueError))
+    # is what keeps run() from crashing.
+    transcript_file = transcripts_dir / "2026-08-28_14-00-00.txt"
+    transcript_file.write_text(
+        "[14:00:00] Собеседник: Когда релиз? Скоро релиз в пятницу, все готово. "
+        "Артём, нужно сделать отчёт до пятницы.",
+        encoding="utf-8",
+    )
+
+    with patch("run.extract_tasks") as mock_extract, \
+         patch("run.extract_qa_pairs") as mock_extract_qa, \
+         patch("run.create_ticket") as mock_create, \
+         patch("run.send_telegram_message") as mock_send:
+        mock_extract_qa.return_value = [
+            {"question": "Когда релиз?", "quote": "релиз в пятницу"}  # missing "answer"
+        ]
+        mock_extract.return_value = [
+            {
+                "who": "Артём",
+                "what": "сделать отчёт до пятницы",
+                "quote": "нужно сделать отчёт до пятницы",
+            }
+        ]
+        mock_create.return_value = JiraTicketResult(
+            success=True, url="https://example.atlassian.net/browse/PROJ-1"
+        )
+
+        exit_code = run.run()
+
+    assert exit_code == 0
+    mock_create.assert_called_once()
+    assert not (summaries_dir / "2026-08-28_14-00-00.md").exists()
+    sent_text = mock_send.call_args[0][2]
+    assert "не удалось сгенерировать саммари" in sent_text
+    assert "PROJ-1" in sent_text
+    assert not transcript_file.exists()
+    assert (processed_dir / transcript_file.name).exists()

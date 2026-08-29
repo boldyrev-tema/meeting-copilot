@@ -29,8 +29,8 @@ TELEGRAM_TRUNCATION_NOTE = "\n\n[отчёт обрезан, полный тек�
 def _generate_and_save_summary(transcript, transcript_path, api_key) -> str:
     try:
         qa_pairs = extract_qa_pairs(transcript, api_key=api_key)
-    except (LLMCallError, LLMResponseParseError) as e:
-        print(f"Не удалось сгенерировать саммари: {e}")
+    except Exception as e:
+        print(f"Не удалось сгенерировать саммари: {type(e).__name__}: {e}")
         return "не удалось сгенерировать саммари"
 
     confirmed, needs_review_qa = [], []
@@ -47,8 +47,8 @@ def _generate_and_save_summary(transcript, transcript_path, api_key) -> str:
         SUMMARIES_DIR.mkdir(parents=True, exist_ok=True)
         summary_path = SUMMARIES_DIR / f"{transcript_path.stem}.md"
         summary_path.write_text(summary_text, encoding="utf-8")
-    except (OSError, ValueError) as e:
-        print(f"Не удалось сохранить саммари: {e}")
+    except Exception as e:
+        print(f"Не удалось сохранить саммари: {type(e).__name__}: {e}")
         return "не удалось сгенерировать саммари"
 
     return f"саммари сохранено: {summary_path}"
