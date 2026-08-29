@@ -47,7 +47,7 @@ def _generate_and_save_summary(transcript, transcript_path, api_key) -> str:
         SUMMARIES_DIR.mkdir(parents=True, exist_ok=True)
         summary_path = SUMMARIES_DIR / f"{transcript_path.stem}.md"
         summary_path.write_text(summary_text, encoding="utf-8")
-    except OSError as e:
+    except (OSError, ValueError) as e:
         print(f"Не удалось сохранить саммари: {e}")
         return "не удалось сгенерировать саммари"
 
