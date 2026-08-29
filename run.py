@@ -22,6 +22,8 @@ GROQ_API_KEY_PATH = "~/.credentials/groq_api_key.env"
 JIRA_CREDENTIALS_PATH = "~/.credentials/jira_credentials.env"
 TELEGRAM_CREDENTIALS_PATH = "~/.credentials/meeting_copilot_telegram.env"
 
+# Telegram's sendMessage API rejects text over ~4096 characters. Leave headroom
+# for the truncation note itself.
 TELEGRAM_MESSAGE_LIMIT = 4000
 TELEGRAM_TRUNCATION_NOTE = "\n\n[отчёт обрезан, полный текст в терминале]"
 
@@ -29,16 +31,15 @@ TELEGRAM_TRUNCATION_NOTE = "\n\n[отчёт обрезан, полный тек�
 def _generate_and_save_summary(transcript, transcript_path, api_key) -> str:
     try:
         qa_pairs = extract_qa_pairs(transcript, api_key=api_key)
+        confirmed, needs_review_qa = [], []
+        for item in qa_pairs:
+            if verify_quote(item["quote"], transcript):
+                confirmed.append(item)
+            else:
+                needs_review_qa.append(item)
     except Exception as e:
         print(f"Не удалось сгенерировать саммари: {type(e).__name__}: {e}")
         return "не удалось сгенерировать саммари"
-
-    confirmed, needs_review_qa = [], []
-    for item in qa_pairs:
-        if verify_quote(item["quote"], transcript):
-            confirmed.append(item)
-        else:
-            needs_review_qa.append(item)
 
     try:
         meeting_label = derive_meeting_label(transcript_path.stem)
@@ -49,7 +50,7 @@ def _generate_and_save_summary(transcript, transcript_path, api_key) -> str:
         summary_path.write_text(summary_text, encoding="utf-8")
     except Exception as e:
         print(f"Не удалось сохранить саммари: {type(e).__name__}: {e}")
-        return "не удалось сгенерировать саммари"
+        return "не удалось сохранить саммари"
 
     return f"саммари сохранено: {summary_path}"
 
