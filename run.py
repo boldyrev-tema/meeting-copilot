@@ -1,11 +1,19 @@
 import sys
 
-from config import MIN_TRANSCRIPT_CHARS, NAME_MAPPING_PATH, PROCESSED_DIR, TRANSCRIPTS_DIR
+from config import (
+    MIN_TRANSCRIPT_CHARS,
+    NAME_MAPPING_PATH,
+    PROCESSED_DIR,
+    SUMMARIES_DIR,
+    TRANSCRIPTS_DIR,
+)
 from credentials import load_credential
 from jira_client import create_ticket
 from name_mapping import load_name_mapping, resolve_name
 from quote_verification import verify_quote
 from report import build_report
+from summary_extraction import extract_qa_pairs
+from summary_markdown import build_summary_markdown, derive_meeting_label
 from task_extraction import LLMCallError, LLMResponseParseError, extract_tasks
 from telegram_notify import TelegramSendError, send_telegram_message
 from transcript_source import find_latest_unprocessed, mark_processed, read_transcript
@@ -14,10 +22,36 @@ GROQ_API_KEY_PATH = "~/.credentials/groq_api_key.env"
 JIRA_CREDENTIALS_PATH = "~/.credentials/jira_credentials.env"
 TELEGRAM_CREDENTIALS_PATH = "~/.credentials/meeting_copilot_telegram.env"
 
-# Telegram's sendMessage API rejects text over ~4096 characters. Leave headroom
-# for the truncation note itself.
 TELEGRAM_MESSAGE_LIMIT = 4000
 TELEGRAM_TRUNCATION_NOTE = "\n\n[отчёт обрезан, полный текст в терминале]"
+
+
+def _generate_and_save_summary(transcript, transcript_path, api_key) -> str:
+    try:
+        qa_pairs = extract_qa_pairs(transcript, api_key=api_key)
+    except (LLMCallError, LLMResponseParseError) as e:
+        print(f"Не удалось сгенерировать саммари: {e}")
+        return "не удалось сгенерировать саммари"
+
+    confirmed, needs_review_qa = [], []
+    for item in qa_pairs:
+        if verify_quote(item["quote"], transcript):
+            confirmed.append(item)
+        else:
+            needs_review_qa.append(item)
+
+    try:
+        meeting_label = derive_meeting_label(transcript_path.stem)
+        summary_text = build_summary_markdown(meeting_label, confirmed, needs_review_qa)
+
+        SUMMARIES_DIR.mkdir(parents=True, exist_ok=True)
+        summary_path = SUMMARIES_DIR / f"{transcript_path.stem}.md"
+        summary_path.write_text(summary_text, encoding="utf-8")
+    except OSError as e:
+        print(f"Не удалось сохранить саммари: {e}")
+        return "не удалось сгенерировать саммари"
+
+    return f"саммари сохранено: {summary_path}"
 
 
 def run() -> int:
@@ -39,8 +73,15 @@ def run() -> int:
 
     try:
         groq_api_key = load_credential(GROQ_API_KEY_PATH, "GROQ_API_KEY")
+    except (FileNotFoundError, ValueError) as e:
+        print(f"Не удалось обработать транскрипт: {e}")
+        return 1
+
+    summary_note = _generate_and_save_summary(transcript, transcript_path, groq_api_key)
+
+    try:
         tasks = extract_tasks(transcript, name_mapping, api_key=groq_api_key)
-    except (LLMCallError, LLMResponseParseError, FileNotFoundError, ValueError) as e:
+    except (LLMCallError, LLMResponseParseError) as e:
         print(f"Не удалось обработать транскрипт: {e}")
         return 1
 
@@ -80,7 +121,9 @@ def run() -> int:
             else:
                 jira_errors.append({**task, "error": result.error})
 
-    report_text = build_report(created, needs_review, skipped, jira_errors)
+    report_text = build_report(
+        created, needs_review, skipped, jira_errors, summary_note=summary_note
+    )
     print(report_text)
 
     telegram_text = report_text
