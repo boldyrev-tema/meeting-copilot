@@ -17,6 +17,17 @@ def test_build_summary_markdown_lists_qa_pairs():
     assert "В пятницу" in text
 
 
+def test_build_summary_markdown_lists_topics_from_questions():
+    qa_pairs = [
+        {"question": "Когда релиз?", "answer": "В пятницу", "quote": "релиз в пятницу"},
+        {"question": "Кто пишет отчёт?", "answer": "Артём", "quote": "Артём пишет отчёт"},
+    ]
+
+    text = build_summary_markdown("2026-08-28 10:00", qa_pairs, [])
+
+    assert "**Темы:** Когда релиз?, Кто пишет отчёт?" in text
+
+
 def test_build_summary_markdown_includes_needs_review_section():
     needs_review = [
         {

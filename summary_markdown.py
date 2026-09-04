@@ -8,6 +8,9 @@ def build_summary_markdown(meeting_label: str, qa_pairs: list, needs_review: lis
     lines = [f"# Саммари созвона — {meeting_label}"]
 
     if qa_pairs:
+        topics = ", ".join(item["question"] for item in qa_pairs)
+        lines.append(f"\n**Темы:** {topics}")
+
         lines.append("\n## Обсуждали")
         for item in qa_pairs:
             lines.append(f"\n### {item['question']}")
