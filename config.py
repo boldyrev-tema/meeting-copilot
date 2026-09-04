@@ -14,4 +14,3 @@ PROCESSED_DIR = TRANSCRIPTS_DIR / "processed"
 SUMMARIES_DIR = Path(__file__).parent / "summaries"
 NAME_MAPPING_PATH = Path(__file__).parent / "name_mapping.json"
 MIN_TRANSCRIPT_CHARS = 200
-GROQ_MODEL = "openai/gpt-oss-120b"

@@ -18,7 +18,7 @@ from task_extraction import LLMCallError, LLMResponseParseError, extract_tasks
 from telegram_notify import TelegramSendError, send_telegram_message
 from transcript_source import find_latest_unprocessed, mark_processed, read_transcript
 
-GROQ_API_KEY_PATH = "~/.credentials/groq_api_key.env"
+OPENROUTER_API_KEY_PATH = "~/.credentials/openrouter_api_key.env"
 JIRA_CREDENTIALS_PATH = "~/.credentials/jira_credentials.env"
 TELEGRAM_CREDENTIALS_PATH = "~/.credentials/meeting_copilot_telegram.env"
 
@@ -73,15 +73,15 @@ def run() -> int:
         return 1
 
     try:
-        groq_api_key = load_credential(GROQ_API_KEY_PATH, "GROQ_API_KEY")
+        openrouter_api_key = load_credential(OPENROUTER_API_KEY_PATH, "OPENROUTER_API_KEY")
     except (FileNotFoundError, ValueError) as e:
         print(f"Не удалось обработать транскрипт: {e}")
         return 1
 
-    summary_note = _generate_and_save_summary(transcript, transcript_path, groq_api_key)
+    summary_note = _generate_and_save_summary(transcript, transcript_path, openrouter_api_key)
 
     try:
-        tasks = extract_tasks(transcript, name_mapping, api_key=groq_api_key)
+        tasks = extract_tasks(transcript, name_mapping, api_key=openrouter_api_key)
     except (LLMCallError, LLMResponseParseError) as e:
         print(f"Не удалось обработать транскрипт: {e}")
         return 1

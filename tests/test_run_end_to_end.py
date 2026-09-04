@@ -6,8 +6,8 @@ from jira_client import JiraTicketResult
 
 
 def _write_credentials(tmp_path):
-    groq_path = tmp_path / "groq.env"
-    groq_path.write_text("GROQ_API_KEY=fake-groq-key\n")
+    openrouter_path = tmp_path / "openrouter.env"
+    openrouter_path.write_text("OPENROUTER_API_KEY=fake-openrouter-key\n")
 
     jira_path = tmp_path / "jira.env"
     jira_path.write_text(
@@ -20,7 +20,7 @@ def _write_credentials(tmp_path):
     telegram_path = tmp_path / "telegram.env"
     telegram_path.write_text("TELEGRAM_BOT_TOKEN=fake-bot-token\nTELEGRAM_CHAT_ID=12345\n")
 
-    return groq_path, jira_path, telegram_path
+    return openrouter_path, jira_path, telegram_path
 
 
 def _setup_run_paths(monkeypatch, tmp_path):
@@ -32,14 +32,14 @@ def _setup_run_paths(monkeypatch, tmp_path):
     name_mapping_path = tmp_path / "name_mapping.json"
     name_mapping_path.write_text(json.dumps({"Артём": "artem.boldyrev"}), encoding="utf-8")
 
-    groq_path, jira_path, telegram_path = _write_credentials(tmp_path)
+    openrouter_path, jira_path, telegram_path = _write_credentials(tmp_path)
 
     monkeypatch.setattr(run, "TRANSCRIPTS_DIR", transcripts_dir)
     monkeypatch.setattr(run, "PROCESSED_DIR", processed_dir)
     monkeypatch.setattr(run, "SUMMARIES_DIR", summaries_dir)
     monkeypatch.setattr(run, "NAME_MAPPING_PATH", name_mapping_path)
     monkeypatch.setattr(run, "MIN_TRANSCRIPT_CHARS", 10)
-    monkeypatch.setattr(run, "GROQ_API_KEY_PATH", str(groq_path))
+    monkeypatch.setattr(run, "OPENROUTER_API_KEY_PATH", str(openrouter_path))
     monkeypatch.setattr(run, "JIRA_CREDENTIALS_PATH", str(jira_path))
     monkeypatch.setattr(run, "TELEGRAM_CREDENTIALS_PATH", str(telegram_path))
 
@@ -351,7 +351,7 @@ def test_run_summary_still_saved_when_task_detection_fails(monkeypatch, tmp_path
         mock_extract_qa.return_value = [
             {"question": "Когда релиз?", "answer": "В пятницу", "quote": "релиз в пятницу"}
         ]
-        mock_extract.side_effect = LLMCallError("groq is down")
+        mock_extract.side_effect = LLMCallError("openrouter is down")
 
         exit_code = run.run()
 
@@ -376,7 +376,7 @@ def test_run_summary_failure_does_not_block_ticket_or_move(monkeypatch, tmp_path
          patch("run.send_telegram_message") as mock_send:
         from task_extraction import LLMCallError
 
-        mock_extract_qa.side_effect = LLMCallError("groq is down")
+        mock_extract_qa.side_effect = LLMCallError("openrouter is down")
         mock_extract.return_value = [
             {
                 "who": "Артём",
